@@ -11,7 +11,7 @@ const cookieParser = require('cookie-parser') ;
 app.set("view engine" , "ejs") ;
 app.use(express.json()) ;
 app.use(cookieParser()) ;
-app.use(express.urlencoded({extented:true})) ;
+app.use(express.urlencoded({extended:true})) ;
 app.use(express.static(path.join(__dirname, "public"))) ;
 
 
@@ -121,5 +121,8 @@ app.post("/createhisaab" ,isLoggedIn ,  async(req,res,next) => {
 
 
 
-app.listen(3000) ;   
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
 module.exports = app;
