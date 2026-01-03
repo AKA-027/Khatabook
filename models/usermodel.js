@@ -1,6 +1,6 @@
 const mongoose = require('mongoose') ;
 
-mongoose.connect("mongodb+srv://saxenasaumya027_db_user:msFghCicAWhSHvF8@cluster0.56rtucu.mongodb.net/?appName=Cluster0");
+mongoose.connect(process.env.MONGODB_URL);
 const db = mongoose.connection;
 
 db.on("error" , function(err){
