@@ -2,84 +2,123 @@ const express = require('express') ;
 const app = express() ;
 const path = require('path') ;
 const fs = require('fs');
-
-if (!fs.existsSync('./hisaab')) {
-  fs.mkdirSync('./hisaab');
-}
-
+const usermodel = require('./models/usermodel');
+const hisaabModel = require('./models/hisaabModel') ;
+const jwt = require('jsonwebtoken') ;
+const bcrypt = require('bcrypt') ;
+const cookieParser = require('cookie-parser') ;
 
 app.set("view engine" , "ejs") ;
 app.use(express.json()) ;
+app.use(cookieParser()) ;
 app.use(express.urlencoded({extented:true})) ;
 app.use(express.static(path.join(__dirname, "public"))) ;
 
-app.get("/" , (req,res) => {
-    fs.readdir("./hisaab",(err , files) => {
-       if(err) return res.status(500).send(err) ;
-       res.render("index" , {files : files}) ;
-    })
-}) ;
 
-app.get("/hisaab" , (req,res) => {
-    res.render("hisaab") ;
-}) ;
+ function isLoggedIn(req,res,next){
+     let token = req.cookies.token ;
+     if(!token) return res.send("you must be logged in") ;
 
-app.get("/edit" , (req,res) => {
-    res.render("edit") ;
+     let decoded = jwt.verify(token,"khatabook@123") ; 
+     req.user = decoded ;
+     next() ;
+ }
+
+
+app.get("/signup", (req, res) => {
+    res.render("signup");
+});
+
+app.post("/signup" ,async (req,res) => {
+     const {firstName ,lastName,email,password,confirmPassword}  = req.body ;
+   
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+        return res.send("All fields are required!");
+    }
+
+     if(password !== confirmPassword){
+        return  res.send("Passwords do not match ! please try again") ;
+     }
+
+     const salt = await bcrypt.genSalt(10) ;
+     const hash = await bcrypt.hash(password,salt) ;
+
+
+     
+
+     const user = await  usermodel.create({
+          firstName,
+          lastName,
+          email,
+          password:hash, 
+
+          
+     });
+     res.send("sucessfully registered") ;     
+})
+
+app.get("/Login" ,(req,res) => {
+       res.render("login") ;
+} )
+
+app.post("/login" , async (req,res) => {
+     const {email,password} = req.body ;
+     // 1. Check if ANY field is empty
+    if (!email || !password) {
+        return res.send("All fields are required!");
+    }
+     let user =  await usermodel.findOne({email:email}) ;
+     if(!user){
+        return res.send("user does not exists") ;
+     }
+     let token  = jwt.sign({email:user.email , id:user._id}  , "khatabook@123")  ;
+
+     if(!user) return res.status(404).send("user does not exist") ;
+             let match = await bcrypt.compare(password,user.password) ;
+             if(match) {
+               res.cookie("token" , token) ;
+               res.send("successfully logged in and cookie set") ;
+                
+             }else{
+             res.send("something went wrong") ; 
+                
+             }
+             
+    
+
+
 }) ;
+app.get("/profile" ,(req,res) => {
+      // get the cookie
+       let token = req.cookies.token;
+       if(!token) {
+          res.send("you are not logged in") ; 
+       }
+       // verify token
+       let decoded = jwt.verify(token,"khatabook@123");
+       console.log(decoded) ;
+       res.send("welcome" + decoded.email) ;
+}) 
 
 app.get("/create" , (req,res) => {
-    res.render("create") ;
+     res.render("create") ;
 }) ;
 
-app.post("/createhisaab" , (req,res) => {
-          let currentDate = new Date() ;
-          let date = `${currentDate.getDate()}-${currentDate.getMonth() + 1}-${currentDate.getFullYear()}`
-          const checkAndSave = (filename , count) => {
-             fs.stat(`./hisaab/${filename}.txt` , (err) => {
-            if(err){
-                     fs.writeFile(`./hisaab/${filename}.txt`, req.body.content , (err) =>{
-                     if(err) return res.status(500).send(err) ;
-                     res.redirect("/");
-                      }) 
-                }else{
-                     
-                    checkAndSave(`${date}(${count})` , count + 1) ;
-                }
-             })
-          }
-          
-          checkAndSave(date , 1) ;
-           
-      }) ;
+app.post("/createhisaab" ,isLoggedIn ,  async(req,res,next) => {
+    const{title,content} = req.body ;
+     const hisaab = await hisaabModel.create({
+        title,
+        content,
+        user:req.user.id
+         }) ; 
+     let user = await usermodel.findOne({email:req.user.email}) ;
+     user.hisaabs.push(hisaab._id) ;
+     await user.save() ;
 
-app.get("/edit/:filename" , (req,res) => {
-     fs.readFile(`./hisaab/${req.params.filename}`, "utf-8", (err , filedata) => {
-          if(err) return res.status(500).send(err) ;
-          res.render("edit" , {filedata , filename:req.params.filename}) ;
-     })
-}) ;
-
-app.post("/update/:filename" , (req,res) => {
-     fs.writeFile(`./hisaab/${req.params.filename}` , req.body.content , (err) => {
-          if(err) return res.status(500).send(err) ;
-          res.redirect("/") ;
-     })
-})
-
-app.get("/delete/:filename" , (req,res) => {
-     fs.unlink(`./hisaab/${req.params.filename}`, (err) => {
-          if(err) return res.status(500).send(err) ;
-          res.redirect("/") ;
-     })
-})
-
-app.get("/hisaab/:filename" , (req,res) => {
-     fs.readFile(`./hisaab/${req.params.filename}` , (err , filedata) => {
-          if(err) return res.status(500).send(err) ;
-          res.render("hisaab" , {filedata , filename: req.params.filename}) ; 
-     })
+     res.redirect("/profile") ;
 })
 
 
-app.listen(3000) ;
+
+
+app.listen(3000) ;   

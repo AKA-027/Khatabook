@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+input{
+    margin-top: 8px;
+    background-color: rgba(128, 128, 128, 0.245);
+    padding: 8px;
+    margin: 7px;
+    border-radius: 16px;
+    
+}
+a{
+    color:rgba(66, 231, 66, 0.941) ;
+    font:bold;
+    text-decoration: underline;
+}
+textarea{
+    background-color: rgba(128, 128, 128, 0.245);
+
+}
