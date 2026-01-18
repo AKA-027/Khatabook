@@ -1,30 +1,13 @@
-const mongoose = require('mongoose') ;
-
-mongoose.connect(process.env.MONGODB_URL);
-const db = mongoose.connection;
-
-db.on("error" , function(err){
-    console.log(err) ;
-});
-
-db.on("open" , function(){
-    console.log("connected") ;
-})
+const mongoose = require("mongoose") ;
 
 const userSchema = mongoose.Schema({
-     firstName :String,
-     lastName : String,
-     email:String,
-     password:String,
-     confirmPassword:String,
-     hisaabs:[
-        {
-           type: mongoose.Schema.Types.ObjectId,
-           ref:"hisaab"
-        }
-        
-     ]
-
+    firstName:String,
+    lastName:String,
+    email:String,
+    password:String,
+    confirmPassword:String 
 }) ;
 
-module.exports = mongoose.model("user" , userSchema) ;
+
+
+module.exports = mongoose.model("users" , userSchema) ;
